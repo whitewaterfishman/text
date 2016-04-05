@@ -1,0 +1,84 @@
+
+<?php
+//captcha.php
+ session_start();//通过session保存数据，必须处于脚本最顶部
+ 
+ $image = imagecreatetruecolor(100,30);
+ $bgcolor = imagecolorallocate($image,255,255,255);
+ imagefill($image, 0 ,0, $bgcolor);
+ /*
+ for($i=0;$i<4;$i++){
+	 $fontsize = 6;
+	 $fontcolor = imagecolorallocate($image,rand(0,120),rand(0,120),rand(0,120));
+	 $fontcontent = rand(0,9);
+	 
+	 $x=($i*100/4)+rand(5,10);
+	 $y=rand(5,10);
+	 
+	 imagestring($image,$fontsize,$x,$y,$fontcontent,$fontcolor);
+ }
+*/
+$captch_code='';
+
+for($i=0;$i<4;$i++){
+	$fontsize = 6;
+	$fontcolor = imagecolorallocate($image,rand(0,120),rand(0,120),rand(0,120));
+	
+	$date = 'abcdefghijkmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXYZ3456789';
+	$fontcontent = substr($date,rand(0,strlen($date)),1);
+	$captch_code.=$fontcontent;
+	
+	$x = ($i*100/4)+rand(5,10);
+	$y = rand(5,10);
+	
+	imagestring($image,$fontsize,$x,$y,$fontcontent,$fontcolor);
+}
+
+$_SESSION['authcode']=$captch_code;
+ 
+ for($i=0;$i<200;$i++){
+	 $pointcolor = imagecolorallocate($image,rand(50,200),rand(50,200),rand(50,200));
+	 imagesetpixel($image,rand(1,99),rand(1,29),$pointcolor);
+ }
+ 
+ for($i=0;$i<3;$i++){
+	 $linecolor = imagecolorallocate($image,rand(80,220),rand(80,220),rand(80,220));
+	 imageline($image,rand(1,99),rand(1,29),rand(1,99),rand(1,29),$linecolor);
+ }
+ header('content-type:image/png');
+ imagepng($image);
+ ?>
+ 
+ 
+ /* form.php */
+ 
+ <?php
+
+if(isset($_REQUEST['authcode'])){
+	session_start();
+	
+	if(strtolower($_REQUEST['authcode'])==strtolower($_SESSION['authcode'])){
+		echo '<font color = "#0000CC">输入正确</font>';
+	}else{
+		echo '<font color = "#CC0000"><b>输入错误</font>';
+	}
+	exit();
+}
+?>
+
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset = "utf-8" />
+	<title>确认验证码</title>
+   </head>
+   <body>
+     <form method = "post" action="./form.php">
+	   <p>验证码图片：<img border = "1" src="./yanzhengma.php?r=<php echo rand();?>" width="100" height="30" /></p>
+	   
+	   <p>请输入图片中的内容：<input type="text" name="authcode" value="" /></p>
+	   <p><input type="submit" value="提交" style="padding:6px 20px;"></p>
+	 </form>
+	</body>
+	</html>
