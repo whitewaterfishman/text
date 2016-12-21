@@ -1,0 +1,181 @@
+<html>
+<head>
+<meta charset="utf-8">
+<style type="text/css">
+    body{
+    	font-size:12px;
+    	font-family:verdana;
+    	width:100%;
+    }
+    div.page{
+    	text-align:center;
+    }
+    div.content{
+    	height:300px;
+    }
+    div.page a{
+    	border:#aaaadd 1px solid ;
+    	text-decoration:none;
+    	padding:2px 5px 2px 5px;
+    	margin:2px;
+    }
+    div.page span.current {
+    	border:#000099 1px solid;
+    	background-color:#000099;
+    	padding:4px 6px;
+    	margin:2px;
+    	color:#fff;
+    	font-weight:bold;
+    }
+    div.page span.disable {
+    	border:#eee 1px solid ;
+    	padding:2px 5px;
+    	margin:2px;
+    	color:#ddd;
+    }
+    div.page form {
+    	display:inline;//将form表单的换行符去掉
+    }
+</style>
+</head>
+<body>
+<?php
+    /*
+     * 传入页码
+     * */
+    $page = $_GET['page'];
+    $pageSize = 10;//每页显示的条数
+    $showPage = 5;//显示的页数
+    /**
+     * 连接数据库
+     */
+    $mysqli = new mysqli('localhost','root','070423','php100');
+    if($mysqli->connect_errno){
+        die('connect error:'.$mysqli->connect_error);
+    }
+    $mysqli->set_charset('utf8');
+    
+    $sql = "SELECT * FROM test LIMIT " .($page-1)*$pageSize . ",{$pageSize}";
+    
+    //把sql语句传送到数据中
+    $result = $mysqli->query($sql);
+    
+    //处理我们的数据
+    echo "<div class='content'>";
+    echo "<table border=1 cellspacing=0 width=40% align=center>";
+    echo "<tr><td>ID</td><td>NAME</td></tr>";
+    while($row=$result->fetch_assoc()){
+        echo "<tr>";
+        echo "<td>{$row['id']}</td>";
+        echo "<td>{$row['name']}</td>";
+        echo "</tr>";
+    }
+    echo "</table>";
+    echo "</div>";
+    //释放结果集
+    $result->free();
+    
+    //获取数据总数
+    $total_sql = "SELECT COUNT(*) FROM test";
+    $total_result = $mysqli->query($total_sql);
+    
+    //取得结果集的条数关联数组如下
+    $total_result_nums = $total_result->fetch_array();
+    //print_r($total_result_nums);//Array ( [0] => 112 [COUNT(*)] => 112 )
+    $total = $total_result_nums[0];
+    
+    //计算页数
+    $total_pages = ceil($total/$pageSize);//往上取整数
+    
+    //关闭数据库连接
+    $mysqli->close();
+    
+    
+    /**
+     * 显示数据及分页条
+     */
+    $page_banner = "<div class=page>";
+    
+    //计算偏移量
+    $pageoffset = ($showPage-1)/2;
+    
+    //若果当前页数大于1，则执行下面代码块，否则执行后面的代码块，
+    //后面的代码块的作用是若处于首页时，首页和上一页的字体样式会变为灰色
+    if($page > 1 ){
+        //$_SERVER['PHP_SELF']获取当前页面地址
+        $page_banner .= "<a href='".$_SERVER['PHP_SELF']."?page=1'>首页</a>";
+        $page_banner .= "<a href='".$_SERVER['PHP_SELF']."?page=".($page-1)."'><上一页</a>";
+    }else{
+        $page_banner .= "<span class='disable'>首页</span>";
+        $page_banner .= "<span class='disable'>上一页</span>";
+    }
+    
+    //初始化数据
+    $start = 1;
+    $end = $total_pages;
+    
+    //
+    if($total_pages > $showPage){
+        //总页数大于显示的页数5时，执行以下代码
+        if($page > $pageoffset + 1){
+            //若当前页数大于偏移量2+1,则在后卫添加省略号
+            $page_banner .= "...";
+        }
+        
+        if($page > $pageoffset){
+            //如果当前页数大于偏移量2
+            $start = $page - $pageoffset;//重新赋值给开始页数，等于当前页数减去偏移量2
+            //若总页数大于当前页数+偏移量，则结束页数为当前页数+偏移量，否则为总页数
+            $end = $total_pages > $page + $pageoffset?$page + $pageoffset : $total_pages;
+           
+        }else{
+            //当前页数小于偏移量2
+            $start = 1;
+            //总页数大于显示页数5时，结束页数为显示页数，否则为总页数
+            $end = $total_pages > $showPage ? $showPage : $total_pages;
+        }
+        //echo $start;
+        //echo "<br>";
+        //echo $end;
+        //如果当前页数+偏移量2大于总页数，若共12页，当前页为11，开始页为9，结束页为12
+        //按照以下公式计算的结果重新赋值给开始页的变量为8
+        if($page + $pageoffset > $total_pages){
+            $start = $start - ($page + $pageoffset - $end);
+        }
+    }
+    
+    //循环出开始到结束的页数
+    for($i=$start;$i<=$end;$i++){
+        //当开始页等于当前页数时，给当前页添加一个标签，以给它设定css样式
+        if($page == $i){
+            $page_banner .= "<span class='current'>{$i}</span>";
+        }else{
+            //否则其他的默认输出
+            $page_banner .= "<a href='".$_SERVER['PHP_SELF']."?page=".$i."'>{$i}</a>";
+        }
+    }
+    
+    //尾部省略
+    //如果总页数大于显示页数且总页数大于当前页数+偏移量2，则显示后面的省略号
+    if($total_pages > $showPage && $total_pages > $page + $pageoffset){
+        $page_banner .= "...";
+    }
+    
+    //同上
+    if($page < $total_pages){
+        $page_banner .= "<a href='".$_SERVER['PHP_SELF']."?page=".($page+1)."'>下一页></a>";
+        $page_banner .= "<a href='".$_SERVER['PHP_SELF']."?page=".($total_pages)."'>尾页</a>";
+    }else{
+        $page_banner .= "<span class='disable'>首页</span>";
+        $page_banner .= "<span class='disable'>下一页</span>";
+    }
+    
+    $page_banner .= "共{$total_pages}页";
+    $page_banner .= "<form action='mypage.php' method='get'>";
+    $page_banner .= "到第<input type='text' size='2' name='page'>页";
+    $page_banner .= "<input type='submit' value='确定'>";
+    $page_banner .= "</form></div>";
+    echo $page_banner;
+?>
+</body>
+</html>
