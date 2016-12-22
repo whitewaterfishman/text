@@ -1,0 +1,245 @@
+<?php
+/******************************************************************
+ * 
+ * 参数说明：
+ * $max_file_size : 上传文件大小限制，单位byte
+ * $destination_folder ：上传文件路径
+ * $watermark ： 是否附加水印（1位加水印，其他位不加水印）
+ * 
+ * 使用说明：
+ * 1.将PHP.INI文件里面的"extension=php_gd2.dll"一行前面的;好去掉，
+ *   因为我们要用到GD库;
+ * 2.将extension_dir = 改为你的php_gd2,dll所在的目录；
+ * 
+ **************************************************************/
+
+//上传文件类型列表
+$uptypes = array(
+    'image/jpg',
+    'image/jpeg',
+    'image/png',
+    'image/pjpeg',
+    'image/gif',
+    'image/x-png'
+);
+
+$max_file_size = 2000000;//上传文件大小限制，单位为BYTE
+$destination_folder = "uploadimg";//上传文件路径
+$watermark = 1;    //是否附加水印
+$watertype = 1;     //水印类型（1为文字，2为图片）
+$waterposition = 1;    //水印位置（1位左下角，2为右下角，3为左上角，4为右上角，5位居中）
+$waterstring = "http://www.xplore.cn/";    //水印字符串
+$wartering = "xplore.gif";    //水印图片
+$imgpreview = 1;    //是否生成预览图（1为生成，其他为不生成）
+$imgpreviewsize = 1/2;   //缩略图比例
+
+?>
+
+<html>
+<head>
+<title>图片上传程序</title>
+<style type="text/css">
+body{
+	font-size:15px;
+}
+input {
+	
+	border:1px inset #CCCCCC;
+}
+</style>
+</head>
+
+<body>
+<form enctype="multipart/form-data" method="post" name="upform">
+    上传图片：
+   <input name="upfile" type="file">
+   <input type="submit" value="上传"><br><br>
+   允许上传的图片类型为：<?php echo implode(',',$uptypes)?>
+</form>
+
+<?php 
+
+    //如果表单提交数据为POST，则执行下面的代码段
+    if($_SERVER['REQUEST_METHOD'] == 'POST'){
+        
+        //is_uploaded_file判断文件是否是通过HTTP POST上传的，成功返回true
+        //($_FILES['upfile']['tmp_name']存储的临时文件名，一般是系统默认
+        if(!is_uploaded_file($_FILES['upfile']['tmp_name'])){
+            //是否存在文件
+            echo "图片不存在";
+            exit;
+        }
+        
+        //$_FILES是系统函数， $_FILES['upfile']是一个关联数组
+        $file = $_FILES['upfile'];
+        
+        //检查文件大小
+        if($max_file_size < $file['size']){
+            
+            echo "文件太大！";
+            exit;
+        }
+        
+        //检查文件类型
+        //in_array()检查数组中是否存在某个值，若有返回true
+        //$file['type']:待搜索的值
+        //$uptypes：检索的数组
+        if(!in_array($file['type'],$uptypes)){
+            
+            echo "文件类型不符！".$file['type'];
+            exit;
+        }
+        
+        //file_exists检查文件或目录是否存在
+        //若不存在，通过mkdir()新建一个目录名为uploading
+        if(!file_exists($destination_folder)){
+            mkdir($destination_folder);
+        }
+        
+        
+        $filename = $file['tmp_name'];
+        
+        //取得图像大小
+        //返回的结果是一个关联数组
+        //如：Array ( [0] => 968 [1] => 516 [2] => 3 [3] => width="968" height="516" [bits] => 8 [mime] => image/png )
+        $image_size = getimagesize($filename);
+        
+        //$file['name']客户端文件的原名称，
+        //pathinfo()返回一个关联数组包含的path的信息
+        //例如：Array ( [dirname] => . [basename] => 26}{1HLJ~K3WHH2LU43%2CX.png [extension] => png 
+        //[filename] => 26}{1HLJ~K3WHH2LU43%2CX 
+        $pinfo = pathinfo($file['name']);
+        $ftype = $pinfo['extension'];//取得相应扩展名的信息，
+        
+        //地址：文件名+当前时间.扩展名
+        $destination = $destination_folder.time().".".$ftype;
+        
+        //判断是否有同名文件
+        if(file_exists($destination) && $overwrite != true){
+            echo "同名文件已经存在了！";
+            exit;
+        }
+        
+        //move_uploaded_file：将上传的文件移动到新位置。成功返回true
+        //$filename:上传的文件名；$destination:新位置
+        if(!move_uploaded_file($filename,$destination)){
+            echo "移动文件出错！";
+            exit;
+        }
+        
+        //返回一个关联数组
+        // Array ( [dirname] => . [basename] => uploadimg1482424686.png [extension] => png 
+        //[filename] => uploadimg1482424686 )
+        $pinfo = pathinfo($destination);
+        
+        $fname = $pinfo['basename'];//取得相应位置的字符串
+        
+        echo "<font color=red>已经成功上传</font><br>文件名：<font color=blue>".$fname."</font><br>";
+        echo "宽度：".$image_size[0];
+        echo " 长度：".$image_size[1];
+        echo "<br> 大小：".$file['size']." bytes";//$file['size']：上传文件大小，单位是字节
+        
+        //添加水印
+        if($watermark==1){
+            //取得图片大小
+            $iinfo = getimagesize($destination);
+            
+            //新建一个真彩色图像，参数依次为宽，高
+            $nimage = imagecreatetruecolor($image_size[0],$image_size[1]);
+            
+            //为一幅图片分配颜色
+            $white = imagecolorallocate($nimage,255,255,255);
+            $black = imagecolorallocate($nimage,0,0,0);
+            $red = imagecolorallocate($nimage,255,0,0);
+            
+            //imagefill($image,$x,$y,$color):区域填充，x,y为图像坐标，图像左上角为0,0
+            imagefill($nimage,0,0,$white);
+            
+            //通过判断相应的扩展名来确定方法来创建相应的新图片
+            //索引2是图像类型的标记：1=GIF,2=JPG,3=PNG,4=SWF...
+            switch($iinfo[2]){
+                case 1:
+                    //由文件或URL创建一个新图像
+                    $simage = imagecreatefromgif($destination);
+                    break;
+                case 2:
+                    $simage = imagecreatefromjpeg($destination);
+                    break;
+                case 3:
+                    $simage = imagecreatefrompng($destination);
+                    break;
+                case 4:
+                    $simage = imagecreatefrombmp($destination);
+                    break;
+                default:
+                    die("不支持的文件类型！");
+                    exit;
+            }
+            
+            //imagecopy拷贝图片的一部分
+            //将$simage 0,0开始到宽$image_size[0]，高$image_size[1]拷贝到$nimage的0,0的位置上
+            imagecopy($nimage,$simage,0,0,0,0,$image_size[0],$image_size[1]);
+            
+            //画一矩形并填充
+            //bool imagefilledrectangle ( resource $image , int $x1 , int $y1 , int $x2 , int $y2 , int $color )
+            //imagefilledrectangle() 在 image 图像中画一个用 color 颜色填充了的矩形，其左上角坐标为 x1，y1，右下角坐标为 x2，y2。0, 0 是图像的最左上角。
+            //在图像$nimage中画一个用$white颜色填充了的矩形，其左上角坐标1，$image_size[1]-15,右下角坐标为80，$image_size[1]
+            imagefilledrectangle($nimage,1,$image_size[1]-15,80,$image_size[1],$white);
+            
+            //水印类型
+            switch ($watertype){
+                case 1:
+                    //加水印字符串
+                    //imagestring：水平地划一行字符串
+                    //用$black颜色将字符串$waterstring画到图像$nimage的坐标3，$image_size[1]-15上
+                    imagestring($nimage,2,3,$image_size[1]-15,$waterstring,$black);
+                    break;
+                case 2:
+                    //加水印图片
+                    //创建一个新图像
+                    $simage1 = imagecreatefromgif($wartering);
+                    imagecopy($nimage,$simage1,0,0,0,0,85,15);
+                    imagedestroy($simage1);//销毁图像
+                    break;
+            }
+            
+            //输出图像到浏览器或文件
+            //imagejpep($image,$filename)
+            //从$image图像以$filename为文件名创建一个jpeg图像
+            //filename为文件保存的路径，若未设置，将会直接输出原始图像源
+            switch ($iinfo[2]){
+                case 1:
+                    //imagegif($nimage,$destination);
+                    imagejpep($nimage,$destination);
+                    break;
+                case 2:
+                    imagejepg($nimage,$destination);
+                    break;
+                case 3:
+                    imagepng($nimage,$destination);
+                    break;
+                case 6:
+                    imagewbmp($nimage,$destination);
+                    //imagejpeg($nimage,$destination);
+                    break;
+            }
+            
+            //覆盖原上传文件
+            imagedestroy($nimage);
+            imagedestroy($simage);
+            
+        }
+        
+        //是否生成预览图片，若为1则生成
+        if($imgpreview==1){
+            echo "<br>图片预览:<br>";
+            echo "<img src=\"".$destination."\" width=".($image_size[0]*$imgpreviewsize)." height=".($image_size[1]*$imgpreviewsize);
+            echo " alt=\"图片预览：\r文件名：".$destination."\r上传时间：\".".time().">";
+        }
+    }
+?>
+</body>
+</html>
+</body>
+</html>
+
