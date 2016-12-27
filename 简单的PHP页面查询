@@ -1,0 +1,34 @@
+<?php
+    
+    $mysqli = new mysqli('localhost','root','070423','php100') or die('连接数据库失败！');
+   
+    $mysqli->set_charset('UTF8') or die('设置字符集失败!');
+    
+    //判断是否接受到数据
+    if($_GET['key']){
+        //将接收的关键字以空格为分隔符分割成数组，这里仅适用于两个关键字
+        $k = explode(" ",$_GET['key']);
+        
+        //sql语句要注意 '%###%'，两边有单引号
+        $sql = "SELECT * FROM `message` where content like '%".$k[0]."%' and content like '%".$k[1]."%'"; 
+        
+        $result = $mysqli->query($sql);
+        
+        
+        while($row=$result->fetch_array()){
+            $row['content'] = preg_replace("/($k[0])/i","<font color=red><b>\\1</b></font>",$row['content']);
+            $row['content'] = preg_replace("/($k[1])/i","<font color=red><b>\\1</b></font>",$row['content']);
+            echo $row['content']."<br>";
+        }
+
+    }
+?>
+
+<form action="" method="get">
+    
+    关键字：
+    <input type="text" name="key" />
+    
+    <input type="submit" name="sub" value="搜索" />
+</form>
+
