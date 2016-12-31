@@ -1,0 +1,190 @@
+//poll.html
+<html>
+<head>
+<meta charset="utf-8">
+<title>菜鸟教程(runoob.com)</title>
+<script>
+function getVote(int) {
+  if (window.XMLHttpRequest) {
+    // IE7+, Firefox, Chrome, Opera, Safari 执行代码
+    xmlhttp=new XMLHttpRequest();
+  } else {
+    // IE6, IE5 执行代码
+    xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+  }
+  xmlhttp.onreadystatechange=function() {
+  if (xmlhttp.readyState==4 && xmlhttp.status==200)
+    {
+      document.getElementById("poll").innerHTML=xmlhttp.responseText;
+    }
+  }
+  xmlhttp.open("GET","poll_vote.php?vote="+int,true);
+  xmlhttp.send();
+}
+</script>
+</head>
+<body>
+
+<div id="poll">
+<h3>你最喜欢的多特蒙德球员是谁?</h3>
+<form>
+
+<input type="radio" name="vote" value="0" onclick="getVote(this.value)">
+罗伊斯
+<br>
+
+<input type="radio" name="vote" value="1" onclick="getVote(this.value)">
+格策
+<br>
+
+<input type="radio" name="vote" value="2" onclick="getVote(this.value)">
+帕帕斯普洛斯
+<br>
+
+<input type="radio" name="vote" value="3" onclick="getVote(this.value)">
+香川真司
+<br>
+
+<input type="radio" name="vote" value="4" onclick="getVote(this.value)">
+登贝莱
+<br>
+
+<input type="radio" name="vote" value="5" onclick="getVote(this.value)">
+奥巴梅杨
+<br>
+
+<input type="radio" name="vote" value="6" onclick="getVote(this.value)">
+其他人员
+</form>
+</div>
+
+</body>
+</html>
+
+===========================================================================
+=============================================================================
+poll_vote.php
+<?php
+$vote = htmlspecialchars($_REQUEST['vote']);
+
+// 获取文件中存储的数据
+$filename = "poll_result.txt";
+$content = file($filename);
+
+// 将数据分割到数组中
+$array = explode("||", $content[0]);
+$reus = $array[0];
+$gece = $array[1];
+$papa = $array[2];
+$kagwa = $array[3];
+$debeilai = $array[4];
+$aoba = $array[5];
+$other = $array[6];
+
+switch ($vote){
+    case 0:
+        $reus++;
+        break;
+    case 1:
+        $gece++;
+        break;
+    case 2:
+        $papa++;
+        break;
+    case 3:
+        $kagwa++;
+        break;
+    case 4:
+        $debeilai++;
+        break;
+    case 5:
+        $aoba++;
+        break;
+    case 6:
+        $other++;
+        break;
+    default:
+        echo "您没有选中球员，请重新选择！";
+        
+}
+
+// 插入投票数据
+$insertvote = $reus."||".$gece."||".$papa."||".$kagwa."||".$debeilai."||".$aoba."||".$other;
+//写入文件
+$fp = fopen($filename,"w");
+fputs($fp,$insertvote);
+fclose($fp);
+$sum=$reus+$gece+$papa+$kagwa+$debeilai+$aoba+$other;
+?>
+
+<h2>投票结果:</h2>
+<table>
+  <tr>
+  <td>罗伊斯</td>
+  <td>
+  <span style="display: inline-block; background-color:green;
+      width:<?php echo 100*(round($reus/$sum,2)); ?>px;
+      height:20px;" ></span>
+  <?php echo round($reus/$sum,2); ?>%
+  </td>
+  </tr>
+  <tr>
+  <td>格策</td>
+  <td>
+  <span style="display: inline-block; background-color:red;
+      width:<?php echo 100*(round($gece/$sum,2)); ?>px;
+      height:20px;"></span>
+  <?php echo round($gece/$sum,2); ?>%
+  </td>
+  </tr>
+  <tr>
+  <td>帕帕斯普洛斯</td>
+  <td>
+  <span style="display: inline-block;background-color:blue;
+    width:<?php echo  100*(round($papa/$sum,2));?>px;
+    height:20px;"></span>
+  <?php echo round($papa/$sum,2);?>%
+  </td>
+  </tr>
+  <tr>
+  <td>香川真司</td>
+  <td>
+  <span style="display: inline-block;background-color:yellow;
+    width:<?php echo 100*(round($kagwa/$sum,2));?>px;
+    height:20px;"></span>
+    <?php echo round($kagwa/$sum,2);?>%
+    </td>
+    </tr>
+    <tr>
+    <td>登贝莱</td>
+    <td>
+    <span style="display: inline-block;background-color:blue;
+    width:<?php echo 100*(round($debeilai/$sum,2));?>px;
+    height:20px;"></span>
+    <?php echo round($debeilai/$sum,2);?>%
+    
+    </td>
+    </tr>
+    <tr>
+    <td>奥巴梅杨</td>
+    <td>
+    <span style="display: inline-block;background-color:red;
+        width:<?php echo 100*(round($aoba/$sum,2));?>px;
+        height:20px;"></span>
+        <?php echo round($aoba/$sum,2);?>%
+    </td>
+    </tr>
+    <tr>
+    <td>其他球员</td>
+    <td>
+    <span style="display:inline-block;background-color:yellow;
+        width:<?php echo 100*(round($other/$sum,2));?>px;
+        height:20px;"></span>
+        <?php echo round($other/$sum,2);?>%
+     </td>
+     </tr>
+</table>
+
+========================================================================
+========================================================================
+建立一个txt文件，poll_result.txt
